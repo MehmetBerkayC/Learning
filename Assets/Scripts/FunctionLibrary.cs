@@ -18,6 +18,22 @@ public static class FunctionLibrary
         return functions[(int)name];
     }
 
+    // Get the next function by its name
+    public static FunctionName GetNextFunctionName(FunctionName name)
+    {
+        // Cycle through all functions
+        if((int)name <  functions.Length - 1) // if not the last function
+        {
+            return name + 1; // send the next function
+        }
+        else
+        {
+            return 0; // return to first function
+        }
+
+        /// return (int)name < functions.Length - 1 ? name + 1 : 0; -> Ternary expression for the same blocks</functions.Length>
+    }
+
     public static Vector3 Wave(float u, float v, float t)
     {
         Vector3 p;
