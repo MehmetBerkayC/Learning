@@ -93,7 +93,7 @@ public static class FunctionLibrary
         // - Major Radius
         // float r1 = 0.75f;
         // - Minor Radius
-        //float r2 = 0.25f;
+        // float r2 = 0.25f;
 
         float s =  r1 + r2 * Cos(PI * v);
         Vector3 p;
