@@ -34,6 +34,19 @@ public static class FunctionLibrary
         /// return (int)name < functions.Length - 1 ? name + 1 : 0; -> Ternary expression for the same blocks</functions.Length>
     }
 
+    // Get a random function other than current (don't want duplicates)
+    public static FunctionName GetRandomFunctionNameOtherThan(FunctionName name)
+    {
+        var choice = (FunctionName)Random.Range(1, functions.Length);
+        return choice == name ? 0: choice; 
+    }
+
+    // Smooth transition between functions
+    public static Vector3 Morph(float u, float v, float t, Function from, Function to, float progress)
+    {
+        return Vector3.LerpUnclamped(from(u, v, t), to(u, v, t), SmoothStep(0f, 1f, progress));
+    }
+
     public static Vector3 Wave(float u, float v, float t)
     {
         Vector3 p;
@@ -78,7 +91,7 @@ public static class FunctionLibrary
         //p.z = r * Cos(PI * u);
 
         // Scaling Sphere
-        float r = 0.5f + 0.5f * Sin(PI * t);
+        // float r = 0.5f + 0.5f * Sin(PI * t);
         
         // Sphere with vertical bands
         // float r = 0.9f + 0.1f * Sin(8f * PI * u + t);
@@ -87,7 +100,7 @@ public static class FunctionLibrary
         // float r = 0.9f + 0.1f * Sin(8f * PI * v + t);
 
         // Rotating twisted sphere
-        // float r = 0.9f + 0.1f * Sin(PI * (6f * u + 4f * v + t));
+        float r = 0.9f + 0.1f * Sin(PI * (6f * u + 4f * v + t));
 
 
         float s = r * Cos(0.5f * PI * v);

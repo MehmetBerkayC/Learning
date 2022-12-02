@@ -24,8 +24,9 @@ public class Clock : MonoBehaviour
     {
         TimeSpan CurrentTime = DateTime.Now.TimeOfDay;
 
-        hoursPivot.localRotation   = Quaternion.Euler(0, 0, hourstoDegrees *  DateTime.Now.Hour /*(float)CurrentTime.TotalHours)*/);
-        minutesPivot.localRotation = Quaternion.Euler(0, 0, minutesToDegrees * DateTime.Now.Minute/*(float)CurrentTime.TotalMinutes)*/);
-        secondsPivot.localRotation = Quaternion.Euler(0, 0, secondsToDegrees * DateTime.Now.Second/*(float)CurrentTime.TotalSeconds)*/);
+        hoursPivot.localRotation   = Quaternion.Euler(0, 0, hourstoDegrees * DateTime.Now.Hour      /*(float)CurrentTime.TotalHours)*/);
+        minutesPivot.localRotation = Quaternion.Euler(0, 0, minutesToDegrees * DateTime.Now.Minute  /*(float)CurrentTime.TotalMinutes)*/);
+        secondsPivot.localRotation = Quaternion.Euler(0, 0, secondsToDegrees * DateTime.Now.Second  /*(float)CurrentTime.TotalSeconds)*/);
     }
 }
+
