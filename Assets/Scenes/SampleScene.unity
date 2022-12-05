@@ -157,7 +157,7 @@ MonoBehaviour:
   functionDuration: 1
   transitionDuration: 0
   transitionMode: 0
-  material: {fileID: 2100000, guid: 5b02fdd252ea87048a7838e6c6a6855f, type: 2}
+  material: {fileID: 2100000, guid: 093a3bd782733224fbdd01b3033d8de7, type: 2}
   mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
   computeShader: {fileID: 7200000, guid: 046807d8092641b478b4c089bd77fbe2, type: 3}
 --- !u!4 &393850453
