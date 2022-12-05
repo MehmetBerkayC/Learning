@@ -4,7 +4,9 @@ using UnityEngine;
 
 public class GPUGraph : MonoBehaviour
 {
-    [SerializeField, Range(10,200)] int resolution = 10; // Choose the point amount
+    const int maxResolution = 1000;
+
+    [SerializeField, Range(10, maxResolution)] int resolution = 10; // Choose the point amount
     [SerializeField] FunctionLibrary.FunctionName function;
 
     // Automatic Function Changing - Transitioning
@@ -37,16 +39,18 @@ public class GPUGraph : MonoBehaviour
         computeShader.SetFloat(stepId, step);
         computeShader.SetFloat(timeId, Time.time);
 
-        computeShader.SetBuffer(0, positionsId, positionsBuffer);
+        var kernelIndex = (int)function;
+
+        computeShader.SetBuffer(kernelIndex, positionsId, positionsBuffer);
 
         int groups = Mathf.CeilToInt(resolution / 8f);
-        computeShader.Dispatch(0, groups, groups, 1);
+        computeShader.Dispatch(kernelIndex, groups, groups, 1);
 
         material.SetBuffer(positionsId, positionsBuffer);
         material.SetFloat(stepId, step);
 
         var bounds = new Bounds(Vector3.zero, Vector3.one * (2f + 2f / resolution));
-        Graphics.DrawMeshInstancedProcedural(mesh, 0, material, bounds, positionsBuffer.count);
+        Graphics.DrawMeshInstancedProcedural(mesh, 0, material, bounds, resolution * resolution);
     }
 
 
@@ -63,7 +67,7 @@ public class GPUGraph : MonoBehaviour
          * We have to specify the exact size of each element in bytes, via a second argument.
          * We need to store 3D position vectors, which consist of three float numbers, so the element size is three times four bytes(1 int is 4 bytes). 
          */
-        positionsBuffer = new ComputeBuffer(resolution * resolution, 3 * 4); // something like (total unit count, 1 unit size in bytes)    
+        positionsBuffer = new ComputeBuffer(maxResolution * maxResolution, 3 * 4); // something like (total unit count, 1 unit size in bytes)    
     }
 
     /*
