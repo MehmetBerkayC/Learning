@@ -11,12 +11,21 @@ public static class FunctionLibrary
 
     // Make an array for every Function in this class
     static Function[] functions = { Wave, MultiWave, Ripple, Sphere, Torus };
-    
+
+    // Get how many functions we have
+    public static int FunctionCount => functions.Length;
+
     // Get the function by its name
     public static Function GetFunction(FunctionName name)
     {
         return functions[(int)name];
     }
+    // Could write this function as: - Omitting -
+    /* public static Function GetFunction (FunctionName name) => functions[(int)name]; */
+    
+    // The same concept applies for the GetNextFunctionName method
+    /* public static FunctionName GetNextFunctionName (FunctionName name) =>
+    (int) name<functions.Length - 1 ? name + 1 : 0; */
 
     // Get the next function by its name
     public static FunctionName GetNextFunctionName(FunctionName name)
