@@ -8,22 +8,29 @@ using Unity.Jobs;
 using static Unity.Mathematics.math;
 using float4x4 = Unity.Mathematics.float4x4;
 using quaternion = Unity.Mathematics.quaternion;
+using float3 = Unity.Mathematics.float3;
+using float3x3 = Unity.Mathematics.float3x3;
+using float3x4 = Unity.Mathematics.float3x4;
+
+// We will change all Vector3 to Float3, Matrix4x4 to Float4x4, Quaternion to quaternion
+// To revert back to the jobless compilation change these back
 
 public class Fractal : MonoBehaviour
 {
     // Delay Unity until burst is complete
-    [BurstCompile(CompileSynchronously = true)]
+    [BurstCompile(FloatPrecision.Standard, FloatMode.Fast, CompileSynchronously = true)]
     struct UpdateFractalLevelJob : IJobFor {
 
         public float spinAngleDelta;
         public float scale;
         
+        // Using Jobs, Burst
         [ReadOnly]
         public NativeArray<FractalPart> parents;
         public NativeArray<FractalPart> parts;
 
         [WriteOnly] 
-        public NativeArray<Matrix4x4> matrices;
+        public NativeArray<float3x4> matrices;
 
         // i works the same way as a for loop iterator
         public void Execute(int i) {
@@ -31,16 +38,26 @@ public class Fractal : MonoBehaviour
             FractalPart part = parts[i];
             //part.rotation *= deltaRotation;
             part.spinAngle += spinAngleDelta;
-            part.worldRotation = parent.worldRotation * (part.rotation * Quaternion.Euler(0f, part.spinAngle, 0f));
-            part.worldPosition = parent.worldPosition + parent.worldRotation * (1.5f * scale * part.direction);
+
+            // With Jobs
+            part.worldRotation = mul(parent.worldRotation, mul(part.rotation, quaternion.RotateY(part.spinAngle)));
+            //part.worldRotation = parent.worldRotation * (part.rotation * Quaternion.Euler(0f, part.spinAngle, 0f));
+
+            // With Jobs
+            part.worldPosition = parent.worldPosition + mul(parent.worldRotation, 1.5f * scale * part.direction);
+            //part.worldPosition = parent.worldPosition + parent.worldRotation * (1.5f * scale * part.direction);
             parts[i] = part;
-            matrices[i] = Matrix4x4.TRS(part.worldPosition, part.worldRotation, scale * Vector3.one);
+
+            // With Jobs
+            float3x3 r = float3x3(part.worldRotation) * scale;
+            matrices[i] = float3x4(r.c0, r.c1, r.c2, part.worldPosition);
+            //matrices[i] = Matrix4x4.TRS(part.worldPosition, part.worldRotation, scale * Vector3.one);
         }
     }
 
     // While using Jobs
     NativeArray<FractalPart>[] parts;
-    NativeArray<Matrix4x4>[] matrices;
+    NativeArray<float3x4>[] matrices;
 
     //FractalPart[][] parts;
     //Matrix4x4[][] matrices;
@@ -50,8 +67,12 @@ public class Fractal : MonoBehaviour
     // https://catlikecoding.com/unity/tutorials/basics/jobs/#:~:text=entering%20play%20mode.-,Storing%20Information,-Rather%20than%20have
     struct FractalPart
     {
-        public Vector3 direction, worldPosition;
-        public Quaternion rotation, worldRotation;
+        // With Jobs
+        public float3 direction, worldPosition;
+        public quaternion rotation, worldRotation; 
+        //public Vector3 direction, worldPosition;
+        //public Quaternion rotation, worldRotation;
+
         public float spinAngle;
     }
 
@@ -62,15 +83,27 @@ public class Fractal : MonoBehaviour
 
     static readonly int matricesId = Shader.PropertyToID("_Matrices");
 
-    static Vector3[] directions = {
-        Vector3.up, Vector3.right, Vector3.left, Vector3.forward, Vector3.back
+    // With Jobs
+    static float3[] directions = {
+        up(), right(), left(), forward(), back()
     };
+    //static Vector3[] directions = {
+    //    Vector3.up, Vector3.right, Vector3.left, Vector3.forward, Vector3.back
+    //};
 
-    static Quaternion[] rotations = {
-        Quaternion.identity,
-        Quaternion.Euler(0f, 0f, -90f), Quaternion.Euler(0f, 0f, 90f),
-        Quaternion.Euler(90f, 0f, 0f), Quaternion.Euler(-90f, 0f, 0f)
+
+    // With Jobs 
+    static quaternion[] rotations = {
+        quaternion.identity,
+        quaternion.RotateZ(-0.5f * PI), quaternion.RotateZ(0.5f * PI),
+        quaternion.RotateX(0.5f * PI), quaternion.RotateX(-0.5f * PI)
     };
+    
+    //static Quaternion[] rotations = {
+    //    Quaternion.identity,
+    //    Quaternion.Euler(0f, 0f, -90f), Quaternion.Euler(0f, 0f, 90f),
+    //    Quaternion.Euler(90f, 0f, 0f), Quaternion.Euler(-90f, 0f, 0f)
+    //};
 
     FractalPart CreatePart(int childIndex) => new FractalPart
         {
@@ -84,20 +117,23 @@ public class Fractal : MonoBehaviour
     {
         // While using Jobs
         parts = new NativeArray<FractalPart>[depth];
-        matrices = new NativeArray<Matrix4x4>[depth];
+        matrices = new NativeArray<float3x4>[depth];
 
 
         //parts = new FractalPart[depth][];
         //matrices = new Matrix4x4[depth][];
         matricesBuffers = new ComputeBuffer[depth];
-        int stride = 16 * 4;
+
+        // With Jobs
+        int stride = 12 * 4;
+        //int stride = 16 * 4;
     
         for(int i = 0, length = 1; i < parts.Length; i++, length *= 5)
         {
             // There will be 5 children of each clone so length * 5
             parts[i] = new NativeArray<FractalPart>(length, Allocator.Persistent);
             // We need a transformation matrix to store the world pos, rotation etc...
-            matrices[i] = new NativeArray<Matrix4x4>(length, Allocator.Persistent);
+            matrices[i] = new NativeArray<float3x4>(length, Allocator.Persistent);
             matricesBuffers[i] = new ComputeBuffer(length, stride);
         }
 
@@ -155,17 +191,24 @@ public class Fractal : MonoBehaviour
     private void Update()
     {
         //Quaternion deltaRotation = Quaternion.Euler(0f, 22.5f * Time.deltaTime, 0f);
-        float spinAngleDelta = 22.5f * Time.deltaTime;
+        float spinAngleDelta = 0.125f * PI * Time.deltaTime;
 
         FractalPart rootPart = parts[0][0];
         rootPart.spinAngle = spinAngleDelta;
         //rootPart.rotation *= deltaRotation;
-        rootPart.worldRotation = transform.rotation * (rootPart.rotation * Quaternion.Euler(0f, rootPart.spinAngle, 0f));
+
+        // With Jobs
+        rootPart.worldRotation = mul(transform.rotation, mul(rootPart.rotation, quaternion.RotateY(rootPart.spinAngle)));
+        //rootPart.worldRotation = transform.rotation * (rootPart.rotation * Quaternion.Euler(0f, rootPart.spinAngle, 0f));
         rootPart.worldPosition = transform.position;
         
         float objectScale = transform.lossyScale.x;
         parts[0][0] = rootPart;
-        matrices[0][0] = Matrix4x4.TRS(rootPart.worldPosition, rootPart.worldRotation, objectScale * Vector3.one);
+
+        // With Jobs
+        float3x3 r = float3x3(rootPart.worldRotation) * objectScale;
+        matrices[0][0] = float3x4(r.c0, r.c1, r.c2, rootPart.worldPosition);
+        //matrices[0][0] = Matrix4x4.TRS(rootPart.worldPosition, rootPart.worldRotation, objectScale * Vector3.one);
 
         float scale = objectScale;
 
@@ -178,7 +221,7 @@ public class Fractal : MonoBehaviour
             // While using Jobs
             NativeArray<FractalPart> parentParts = parts[li - 1];
             NativeArray<FractalPart> levelParts = parts[li];
-            NativeArray<Matrix4x4> levelMatrices = matrices[li];
+            NativeArray<float3x4> levelMatrices = matrices[li];
 
             jobHandle = new UpdateFractalLevelJob
             {
@@ -187,7 +230,7 @@ public class Fractal : MonoBehaviour
                 parents = parts[li - 1],
                 parts = parts[li],
                 matrices = matrices[li]
-            }.Schedule(parts[li].Length, jobHandle);
+            }.ScheduleParallel(parts[li].Length, 1, jobHandle);
 
             /* Schedule doesn't immediately run the job, it only schedules it for later processing.
              * It returns a JobHandle value that can be used to track the job's progress. 
